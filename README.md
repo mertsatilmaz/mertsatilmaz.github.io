@@ -1,2 +1,1 @@
-# mertsatilmaz.github.io
-https://github.com/mertsatilmaz
+# https://github.com/mertsatilmaz
