@@ -45,7 +45,7 @@ This repository should not contain secrets, credentials, or sensitive data.
 
 If you believe something sensitive has been committed by mistake, please report it to:
 
-**mert.satilmaz [at] gmail.com**
+**mert.satilmaz@gmail.com**
 
 ## Scope and Intent
 
