@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>What Quantitative Trading Taught Me About Security Engineering</title>
+  <meta name="description" content="How six years of building low-latency trading systems in C++ shaped my approach to security engineering." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>What Quantitative Trading Taught Me About Security Engineering</h1>
+  <p class="meta">January 2026 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <p>
+    Before I worked in security, I spent six years building trading and market-making systems at investment firms in Istanbul. C++ was the primary language. Scala and Python filled in the gaps. The systems handled real-time order management, execution routing, and exchange connectivity. Latency mattered. Reliability was not optional. A bug in production meant real money lost in milliseconds.
+  </p>
+  <p>
+    When I transitioned into security engineering, I expected the two worlds to have little overlap. I was wrong. The mental models I built in quantitative finance turned out to be directly applicable to security, sometimes more than what I picked up from security-specific training.
+  </p>
+
+  <h2>Systems thinking, not tool thinking</h2>
+  <p>
+    In trading, you do not trust any single component in isolation. You think in systems: the order management system talks to the execution layer, which talks to the exchange gateway, which depends on network infrastructure, which depends on clock synchronization. A failure anywhere in that chain cascades. You learn to reason about the whole pipeline, not individual pieces.
+  </p>
+  <p>
+    Most security teams I have encountered think in tools. They think in terms of "we run Tenable" or "we have Sentinel." The tool becomes the program. When the tool produces 30,000 findings and nothing gets fixed, the response is to buy another tool. The system that connects scanning to triage to ownership to remediation to verification is never engineered. It is assumed to exist because the tools exist.
+  </p>
+  <p>
+    Trading taught me that the pipeline is the product, not the individual components. When I built the vulnerability triage pipeline at my current role, I did not start with a scanner or a ticketing system. I started with the question: what is the full path from "vulnerability discovered" to "vulnerability confirmed fixed," and where does that path break?
+  </p>
+
+  <h2>Latency sensitivity translates directly to incident response</h2>
+  <p>
+    In a market-making system, you measure response time in microseconds. Every decision path has a latency budget. You know exactly how long it takes to receive market data, compute a pricing decision, and send an order. If any stage exceeds its budget, you miss the trade.
+  </p>
+  <p>
+    Incident response has the same structure, just on a different timescale. Detection latency, triage latency, escalation latency, containment latency. Most security teams never measure these independently. They measure "time to resolve" as a single number, which is like measuring total trade latency without knowing whether the bottleneck is in market data parsing or order submission. You cannot optimize what you do not decompose.
+  </p>
+  <p>
+    The habit of breaking response paths into measurable stages, and then optimizing each one independently, came directly from building low-latency systems. It is not a security skill. It is a systems engineering skill that security desperately needs.
+  </p>
+
+  <h2>Reliability engineering is security engineering</h2>
+  <p>
+    Trading systems require extreme reliability. If your market-making engine crashes during a volatile session, you do not just lose one trade. You lose your position hedge, your risk limits become meaningless, and your exposure is unbounded until the system recovers. So you build redundancy, health checks, circuit breakers, graceful degradation, and automated recovery. You test failure scenarios before they happen.
+  </p>
+  <p>
+    Security infrastructure needs the same discipline and almost never gets it. I have seen organizations where a single Lambda function handles all security auto-remediation with no error handling, no dead letter queue, no fallback. I have seen Sentinel playbooks that silently fail because an API token expired and nobody noticed for weeks. The tooling exists but the reliability engineering around it does not.
+  </p>
+  <p>
+    When I build security automation now, I apply the same patterns I used in trading: health monitoring on every component, alerting on silent failures, graceful degradation when dependencies are unavailable, and automated recovery where possible. This is not novel engineering. It is just standard reliability practice that the security industry has not adopted.
+  </p>
+
+  <h2>Writing code changes everything</h2>
+  <p>
+    The biggest advantage of coming from a software engineering background is not any specific language or framework. It is the ability to build exactly what you need instead of being constrained by what vendors ship.
+  </p>
+  <p>
+    When I needed to triage 30,000+ vulnerabilities into Jira with proper ownership assignment, severity context, and deduplication, no off-the-shelf integration could do it. I built a pipeline in C++ and Python with a PostgreSQL staging database that pulls from Tenable APIs, deduplicates and enriches findings, and pushes actionable tickets to the right teams daily. That pipeline reduced our vulnerability backlog by 75% in twelve months. It exists because I could write it, not because I could buy it.
+  </p>
+  <p>
+    When I needed a security workflow management platform that handled vulnerability tracking, compliance mapping, report generation, and branded portals for clients, nothing on the market fit. So I built SecPortal in TypeScript. That product exists because the same impulse from trading, "the tool does not exist, so build it," carried over into security.
+  </p>
+  <p>
+    Most security engineers are limited to configuring tools other people built. That is not a criticism; the industry trained them that way. But the gap between "I can configure Terraform" and "I can write a custom auto-remediation pipeline from scratch" is enormous. That gap is where real security leverage lives.
+  </p>
+
+  <h2>The transition was not a pivot. It was an extension.</h2>
+  <p>
+    People sometimes ask why I left quantitative trading for security. The honest answer is that the problems are the same, just applied to a different domain. Both require reasoning about complex systems under uncertainty. Both reward engineering discipline over ad hoc fixes. Both punish you immediately when your assumptions are wrong.
+  </p>
+  <p>
+    The only real difference is that in trading, the feedback loop is measured in profit and loss. In security, the feedback loop is measured in incidents that did or did not happen. The second one is harder to measure, which is exactly why it needs better engineering.
+  </p>
+
+</body>
+</html>

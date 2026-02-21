@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Building a Vulnerability Triage Pipeline That Actually Scales</title>
+  <meta name="description" content="How I built an automated vulnerability triage pipeline in C++ and Python with PostgreSQL to handle 100,000+ findings." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+    pre { background: #f4f4f4; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.9em; line-height: 1.5; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>Building a Vulnerability Triage Pipeline That Actually Scales</h1>
+  <p class="meta">January 2026 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <p>
+    When you manage vulnerability scanning across 50+ applications, 1,000+ virtual machines, and 70,000+ containers in multi-cloud environments, the output is not a report. It is a flood. Weekly scans produce tens of thousands of findings. Most of them are duplicates. Many are noise. Some are critical. And without engineering, there is no way to tell the difference at scale.
+  </p>
+  <p>
+    This post describes the triage pipeline I built to solve this problem. The system integrates Tenable APIs with Jira APIs through a PostgreSQL staging database, written in C++ and Python, and runs automated daily triage to assign deduplicated, enriched vulnerability tickets to the teams responsible for fixing them.
+  </p>
+
+  <h2>The problem with manual triage</h2>
+  <p>
+    Before the pipeline existed, vulnerability management at our organization followed a common pattern: scanners produced findings, a security engineer reviewed them, and tickets were created manually in Jira. This worked at small scale. It collapsed completely once scan coverage expanded to full infrastructure.
+  </p>
+  <p>
+    The failure modes were predictable. Findings were duplicated across tickets because the same CVE appeared on hundreds of hosts. Ownership was unclear because no one mapped findings to responsible teams systematically. Severity was used as the only prioritization axis, meaning thousands of "critical" findings competed for attention without context. And the security team spent more time managing tickets than reducing risk.
+  </p>
+  <p>
+    The root cause was simple: the process was designed for hundreds of findings, not hundreds of thousands. Scaling it meant rebuilding it as an automated system.
+  </p>
+
+  <h2>Architecture decisions</h2>
+  <p>
+    The pipeline has three stages: ingestion, enrichment, and distribution.
+  </p>
+  <p>
+    <strong>Ingestion</strong> pulls raw findings from Tenable's API. This runs on a daily schedule and writes every finding into a PostgreSQL staging database. PostgreSQL was chosen because the enrichment stage requires complex joins, deduplication queries, and aggregation that would be painful to do in application code alone. The staging database is the brain of the pipeline. Every decision the system makes is driven by SQL queries against this data.
+  </p>
+  <p>
+    <strong>Enrichment</strong> is where the raw findings are transformed into actionable data. This stage deduplicates findings by root cause (grouping by CVE, asset group, and blast radius rather than treating each host instance as unique work), enriches them with ownership data from a CMDB mapping, tags them with business context, and calculates a prioritization score that factors in CVSS, exploitability, asset exposure, and compensating controls. This logic is implemented in C++ because the enrichment stage processes large datasets and the query patterns benefit from tight memory control and batch processing that C++ handles well.
+  </p>
+  <p>
+    <strong>Distribution</strong> pushes enriched, deduplicated findings into Jira as properly assigned tickets. Each ticket goes to the team that owns the affected asset, with severity context, remediation guidance, and a link back to the raw scan data. This stage is written in Python because the Jira API interaction is straightforward and Python's HTTP libraries make it trivial to handle pagination, rate limiting, and error retry.
+  </p>
+
+  <h2>Why C++ for the enrichment layer</h2>
+  <p>
+    This is the question I get asked most often. The short answer is that the enrichment stage processes 100,000+ records in batch, performs multi-table joins and deduplication in memory, and needs to complete within a tight daily window. Python would work for smaller datasets, but at this scale, the memory overhead of Python objects and the performance cost of interpreted loops become real constraints.
+  </p>
+  <p>
+    The C++ enrichment process reads from PostgreSQL using libpq, loads findings into flat data structures, performs deduplication and scoring in a single pass, and writes enriched results back to the staging database. The entire enrichment step completes in seconds rather than minutes. This matters because the pipeline runs daily and any delay in enrichment delays ticket creation, which delays remediation.
+  </p>
+  <p>
+    The choice was not about using C++ for the sake of it. It was about using the right tool for a performance-sensitive batch processing stage. The ingestion and distribution stages, where I/O dominates and performance is not the bottleneck, are written in Python.
+  </p>
+
+  <h2>Deduplication is the hard part</h2>
+  <p>
+    Most vulnerability management programs fail at deduplication. They treat every scanner finding as a unique item, which means a single CVE affecting 500 containers becomes 500 Jira tickets assigned to the same team. This destroys signal and overwhelms engineers.
+  </p>
+  <p>
+    The pipeline deduplicates at the root cause level. If CVE-2024-XXXX affects 500 containers running the same base image, that is one ticket, not 500. The ticket references the root cause (the base image), lists the blast radius (500 containers), and provides the single remediation action (update the base image). The team fixes it once. The next scan confirms the fix across all 500 instances.
+  </p>
+  <p>
+    This required building a mapping layer in PostgreSQL that connects scanner findings to asset groups, base images, dependency trees, and deployment pipelines. The mapping is not perfect and requires periodic maintenance, but even an approximate deduplication reduces ticket volume by an order of magnitude compared to the raw scanner output.
+  </p>
+
+  <h2>Results</h2>
+  <p>
+    Within twelve months of deploying the pipeline, we remediated 30,000+ critical and high findings and 70,000+ medium and low findings, reducing overall risk exposure by 75%. Average remediation time dropped because tickets arrived pre-triaged, pre-assigned, and with clear remediation guidance. The security team shifted from managing tickets to reviewing trends and handling exceptions.
+  </p>
+  <p>
+    The system is not perfect. Edge cases in deduplication still require manual review. Ownership mapping breaks when teams reorganize. Some findings genuinely resist automation and need human judgment. But the baseline, the daily automated triage of 100,000+ findings into actionable, owned work items, is handled entirely by the pipeline.
+  </p>
+
+  <h2>The broader point</h2>
+  <p>
+    This pipeline is not novel computer science. It is straightforward batch processing, database queries, and API integration. The reason it does not exist at most organizations is not that it is hard to build. It is that most security teams do not have people who can build it. They have people who can configure scanners and create Jira tickets manually, but not people who can write a C++ batch processor or design a PostgreSQL staging schema for vulnerability deduplication.
+  </p>
+  <p>
+    The gap between "we have a vulnerability management program" and "we have an engineered vulnerability management system" is a software engineering gap. Closing it requires treating security operations as an engineering problem, not an analyst workflow.
+  </p>
+
+</body>
+</html>

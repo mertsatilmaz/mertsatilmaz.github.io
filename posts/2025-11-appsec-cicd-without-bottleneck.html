@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Embedding AppSec Into CI/CD Without Becoming the Bottleneck</title>
+  <meta name="description" content="How to integrate SAST, SCA, and security gates into CI/CD pipelines without destroying developer velocity." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>Embedding AppSec Into CI/CD Without Becoming the Bottleneck</h1>
+  <p class="meta">November 2025 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <p>
+    "Shift left" is the most repeated and least executed idea in application security. Everyone agrees that finding vulnerabilities earlier is cheaper and faster than finding them in production. Almost nobody builds the CI/CD integration that makes it happen without slowing teams down. The result is one of two failure modes: security scanning that runs but produces so much noise that developers ignore it, or security gates that block deployments and create so much friction that engineering managers demand they be removed.
+  </p>
+  <p>
+    Both failure modes share the same root cause: the security team designed the integration around security goals without accounting for developer workflow. This post describes an approach that integrates SAST and SCA into CI/CD pipelines in a way that developers will actually tolerate.
+  </p>
+
+  <h2>The developer experience problem</h2>
+  <p>
+    Security engineers tend to think about application security from the security side: what vulnerabilities exist, what severity they carry, how many findings are open. Developers think about application security from the workflow side: does this block my merge, how long does it add to my pipeline, and does the finding actually tell me what to fix.
+  </p>
+  <p>
+    If your security scan adds 15 minutes to a CI pipeline that previously took 5, developers will resent it. If your scan reports 200 findings on a 10-line pull request because it is scanning the entire codebase instead of the diff, developers will learn to ignore it. If your finding says "SQL Injection detected" without specifying the file, line, and remediation, developers will close the ticket and move on.
+  </p>
+  <p>
+    The first rule of embedding AppSec into CI/CD is: the developer's experience of security tooling determines whether it works. Not the detection rate. Not the coverage percentage. The developer's willingness to engage with the output.
+  </p>
+
+  <h2>SAST and SCA as pipeline stages, not afterthoughts</h2>
+  <p>
+    SAST (static application security testing) and SCA (software composition analysis) serve different purposes and should run at different points in the pipeline.
+  </p>
+  <p>
+    SCA checks dependencies and should run early. It is fast, produces deterministic results, and the findings are usually actionable: upgrade this library to this version. SCA gates are easy to enforce because the remediation is mechanical. If a dependency has a known critical CVE with a patch available, blocking the merge is reasonable and defensible.
+  </p>
+  <p>
+    SAST analyzes source code for vulnerability patterns and is more nuanced. False positive rates vary significantly by language and tool. SAST should run on every pull request but should only gate merges for high-confidence, high-severity findings. The rest should be surfaced as informational comments in the pull request, not blockers. This requires configuring severity thresholds and suppressing known false positive patterns, which is ongoing work, not a one-time setup.
+  </p>
+
+  <h2>Security gates that do not destroy trust</h2>
+  <p>
+    A security gate is a point in the CI/CD pipeline where a deployment is blocked based on security findings. Gates are necessary. Without them, security scanning is just noise that teams can choose to ignore. But gates that are too aggressive destroy developer trust and get disabled.
+  </p>
+  <p>
+    The approach I use has three tiers. Critical findings (confirmed exploitable vulnerabilities, critical CVEs with public exploits, hardcoded credentials) are hard gates: the merge is blocked, no exceptions. High findings are soft gates: the merge is blocked but can be overridden with a security team approval and a tracked exception. Medium and low findings are informational: they appear as PR comments and are tracked in the backlog but do not block anything.
+  </p>
+  <p>
+    This tiered approach works because it aligns the disruption level with the risk level. Developers accept being blocked for a hardcoded AWS key. They do not accept being blocked for an informational finding about a theoretical null pointer dereference in a test file.
+  </p>
+
+  <h2>Making findings actionable</h2>
+  <p>
+    The difference between a finding that gets fixed and a finding that gets ignored is almost always the quality of the remediation guidance. A finding that says "Cross-Site Scripting in UserController.java:142" with a code snippet and a specific remediation (use output encoding via <code>ESAPI.encoder().encodeForHTML()</code>) gets fixed. A finding that says "XSS detected" with a link to an OWASP page does not.
+  </p>
+  <p>
+    I invest significant time in customizing finding templates, writing remediation guidance in the language and framework the developer is actually using, and including code examples where possible. This is not glamorous work. It does not show up in dashboards or metrics. But it is the single highest-leverage activity in an AppSec program because it directly determines whether findings get fixed or ignored.
+  </p>
+
+  <h2>Measuring the right things</h2>
+  <p>
+    Most AppSec programs measure findings: how many were found, how many are open, how many are critical. These metrics tell you about scanner output, not program effectiveness.
+  </p>
+  <p>
+    The metrics that actually matter are: mean time from finding to fix for gated findings, developer override rate on security gates (if it is above 20%, your gates are too aggressive or your findings are not credible), the ratio of findings that developers fix without security team involvement (this measures whether your guidance is actionable), and the trend of new findings per deployment (this tells you whether developers are learning from past findings or repeating the same mistakes).
+  </p>
+  <p>
+    If new findings per deployment are trending down, your AppSec program is working. If they are flat or trending up despite active scanning, your program is detecting but not educating.
+  </p>
+
+  <h2>The uncomfortable truth</h2>
+  <p>
+    Embedding security into CI/CD is not primarily a tooling problem. Mend, Snyk, Checkmarx, SonarQube, they all detect real vulnerabilities. The hard part is the organizational work: earning developer trust, writing usable guidance, tuning false positive rates, designing gates that are strict enough to matter but not so strict that they get bypassed.
+  </p>
+  <p>
+    This work is slow, iterative, and often invisible. It does not produce dramatic dashboards or headline metrics. It produces a gradual, measurable improvement in the security posture of every application that passes through the pipeline. That is what real application security looks like.
+  </p>
+
+</body>
+</html>

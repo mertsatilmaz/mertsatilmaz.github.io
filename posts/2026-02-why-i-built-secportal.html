@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why I Built SecPortal</title>
+  <meta name="description" content="The engineering and operational frustrations that led me to build SecPortal, an AI-native security workflow management platform." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>Why I Built SecPortal</h1>
+  <p class="meta">February 2026 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <p>
+    Every security team I have worked with, whether delivering assessments to clients or managing risk internally, runs into the same operational bottleneck. Findings live in spreadsheets. Reports are assembled manually in Word documents. Remediation is tracked over email or in Jira tickets that were never designed for security workflows. Compliance evidence is scattered across SharePoint folders that nobody maintains. There is no single system connecting the full lifecycle from finding to fix to proof.
+  </p>
+  <p>
+    This is not a minor inconvenience. It is a structural failure that consumes hours of engineering time every week on work that should not require engineering time at all. I built <a href="https://secportal.io">SecPortal</a> because the platform I needed did not exist.
+  </p>
+
+  <h2>The spreadsheet problem</h2>
+  <p>
+    Spreadsheets are the default tool for security data. Vulnerability findings go into Excel. Compliance controls go into Excel. Assessment results go into Excel. Risk registers go into Excel. This happens not because spreadsheets are good at any of these things, but because every alternative is either too expensive, too rigid, or too focused on a single domain.
+  </p>
+  <p>
+    The result is data that is fragile, disconnected, and impossible to operate on at scale. Sorting a spreadsheet of 500 findings by CVSS score is not vulnerability management. It is data entry. Copying findings from a spreadsheet into a Word template to produce a report is not report generation. It is manual labor that a machine should handle.
+  </p>
+  <p>
+    I have personally spent hundreds of hours doing this work. After the third time I rebuilt the same Excel-to-Word pipeline for a different client, I decided to build the system that eliminates it entirely.
+  </p>
+
+  <h2>What SecPortal does</h2>
+  <p>
+    SecPortal is a security workflow management platform that covers the full lifecycle: vulnerability management, compliance control tracking, incident response, security reviews, and assessments. The core workflow is: log findings (with auto-calculated CVSS 3.1 scores), generate reports, deliver them through branded portals, track remediation, and map everything to compliance frameworks like ISO 27001, SOC 2, and Cyber Essentials.
+  </p>
+  <p>
+    For consultancies, this means: conduct an assessment, log findings in SecPortal, generate a branded PDF report with one click, share it with the client through a white-labelled portal, and track remediation as the client fixes issues. The entire engagement lifecycle is managed in one place.
+  </p>
+  <p>
+    For internal security teams, this means: manage findings across segregated business units, track compliance controls, handle incidents, and generate evidence for audits without maintaining parallel spreadsheets for each domain.
+  </p>
+  <p>
+    The platform integrates with Nessus, Burp Suite, and CSV imports for finding ingestion, and includes 300+ pre-built finding and control templates so teams do not start from scratch.
+  </p>
+
+  <h2>Why TypeScript</h2>
+  <p>
+    SecPortal is built in TypeScript, full stack. The frontend, backend, and infrastructure automation all use the same language. This was a deliberate choice.
+  </p>
+  <p>
+    A single-language stack reduces context switching, simplifies hiring, and allows shared type definitions between frontend and backend. For a product that handles structured security data (findings with CVSS vectors, compliance controls with framework mappings, assessment timelines with remediation states), type safety across the entire stack catches entire categories of bugs at compile time that would otherwise surface as runtime errors in production.
+  </p>
+  <p>
+    Coming from C++ and Python, TypeScript felt like a natural middle ground: stronger type guarantees than Python, faster development iteration than C++, and first-class support for the async I/O patterns that a web application requires. The ecosystem for building SaaS products in TypeScript is mature, well-documented, and moves fast.
+  </p>
+
+  <h2>AI as a workflow accelerator, not a gimmick</h2>
+  <p>
+    SecPortal uses AI for specific, bounded tasks where automation saves significant time: generating finding descriptions from scan data, drafting report sections from finding metadata, suggesting CVSS scores based on finding context, and building remediation roadmaps from compliance gap analysis. AI handles the repetitive analytical work. The security professional reviews, edits, and approves.
+  </p>
+  <p>
+    I deliberately avoided using AI as a marketing gimmick. There is no "AI security analyst" chatbot. There is no "autonomous assessment" feature. AI in SecPortal does exactly what it is good at (processing structured data and generating draft text) and stays out of decisions that require human judgment (severity overrides, risk acceptance, remediation prioritization in context).
+  </p>
+
+  <h2>The pattern behind the product</h2>
+  <p>
+    Building SecPortal followed the same pattern as every other tool I have built in my career. In quantitative trading, when the execution platform did not do what I needed, I built custom order management and market-making systems in C++. In security, when the vulnerability triage process did not scale, I built an automated pipeline in C++ and Python. When the assessment and compliance workflow was drowning in spreadsheets, I built SecPortal in TypeScript.
+  </p>
+  <p>
+    The common thread is not the technology. It is the approach: identify an operational bottleneck that existing tools do not solve, then engineer a system that eliminates it. Security is full of these bottlenecks. Most of them persist not because they are technically hard, but because the people experiencing them do not have the engineering skills to build the solution, and the people with the engineering skills are not working in security.
+  </p>
+  <p>
+    I happen to sit at that intersection. SecPortal is what comes out of it.
+  </p>
+
+</body>
+</html>

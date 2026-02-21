@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Why Vulnerability Management Collapses After 10,000 Findings</title>
+  <meta name="description" content="Why vulnerability management fails at scale, and what actually works once you pass 10,000 findings." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>Why Vulnerability Management Collapses After 10,000 Findings</h1>
+  <p class="meta">February 2026 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <h2>1) The moment it stops being “a security problem”</h2>
+  <p>
+    At a certain scale, vulnerability management stops being a security problem and becomes an organizational failure mode.
+  </p>
+  <p>
+    This typically happens once continuous scanning spans hundreds of applications, thousands of virtual machines, and containerized workloads across multiple cloud environments. Weekly scans begin producing tens of thousands of findings across infrastructure, images, and dependencies. Reports grow. Dashboards stay green. Ticket counts increase. Remediation slows anyway.
+  </p>
+  <p>
+    Nothing is obviously broken. Scans run on schedule. Findings are ingested. Risk is “tracked.” But the system no longer produces clear decisions. It produces volume. From that point on, every additional scanner, severity score, or dashboard makes the program look more active while making it less effective.
+  </p>
+
+  <h2>2) Why it looks like it’s working at first</h2>
+  <p>
+    Early-stage vulnerability management often feels effective. Asset counts are low. Findings are understandable. Engineers recognize the issues being reported and can fix them quickly. Leadership sees visible progress through shrinking backlogs and clean metrics.
+  </p>
+  <p>
+    This early success creates a dangerous illusion: that scaling the program is just a matter of scanning more and reporting harder. The same workflows, metrics, and prioritization logic are assumed to work indefinitely. They do not.
+  </p>
+
+  <h2>3) The 10,000-finding collapse: four failure modes</h2>
+  <p>
+    Once vulnerability volume crosses a certain threshold, four systemic failures appear almost every time.
+  </p>
+  <ul>
+    <li>
+      <strong>Volume destroys signal</strong> — The same underlying issue appears hundreds or thousands of times across fleets, images, and libraries. Coverage increases faster than human capacity. Teams stop distinguishing between meaningful risk and background noise.
+    </li>
+    <li>
+      <strong>CVSS isn’t prioritization</strong> — Severity scores describe theoretical impact, not operational urgency. They ignore exposure, compensating controls, business context, and exploitability in a given environment. High scores crowd the queue while real risk waits.
+    </li>
+    <li>
+      <strong>Ownership evaporates</strong> — Findings are assigned to teams that cannot realistically fix them, or to security teams that lack engineering control. Responsibility becomes diffused. Tickets age without resolution because no one truly owns the outcome.
+    </li>
+    <li>
+      <strong>Engineers disengage</strong> — As trust in the data erodes, engineers stop treating findings as actionable. Alerts are acknowledged, not addressed. At this point the program is still running, but it has already failed.
+    </li>
+  </ul>
+
+  <h2>4) Why more tools often makes it worse</h2>
+  <p>
+    The common response to these symptoms is to add more tooling: more scanners, more dashboards, more risk scores. This increases coverage and visibility, but not control. Input grows. Decision quality does not.
+  </p>
+  <p>
+    The result is a system optimized for reporting activity rather than reducing risk. The organization feels busy. The underlying exposure remains largely unchanged.
+  </p>
+
+  <h2>5) What actually works at scale</h2>
+  <ul>
+    <li>
+      <strong>Deduplicate before you prioritize</strong> — Group findings by root cause and blast radius instead of treating each instance as unique work. Risk exists at the system level, not the ticket level.
+    </li>
+    <li>
+      <strong>Assign ownership before severity</strong> — A medium issue with a clear owner is more actionable than a critical issue owned by no one. Ownership enables remediation; severity alone does not.
+    </li>
+    <li>
+      <strong>Measure what moves action</strong> — Track vulnerability age, remediation throughput, and backlog growth rather than raw counts. Metrics should expose bottlenecks, not decorate dashboards.
+    </li>
+    <li>
+      <strong>Use human review where it matters</strong> — Some prioritization decisions require judgment. Automation should narrow focus, not replace accountability.
+    </li>
+  </ul>
+
+  <h2>6) What this means for security leaders</h2>
+  <p>
+    Scaling vulnerability management is not primarily a tooling problem. It is a capacity, ownership, and workflow problem. More scanning without corresponding remediation capability increases risk by creating false confidence.
+  </p>
+  <p>
+    Effective programs invest in engineering time, clear ownership models, and workflows that connect findings to fixes. Anything else is optimization theater.
+  </p>
+
+  <h2>7) Closing</h2>
+  <p>
+    If your vulnerability program feels overwhelming, that is not a personal failure or a lack of effort. It is a predictable outcome of systems that do not scale the way they are marketed. Fixing it requires fewer illusions and more engineering.
+  </p>
+
+</body>
+</html>

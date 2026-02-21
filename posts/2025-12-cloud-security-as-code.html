@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cloud Security as Code: Moving Beyond Checkbox Compliance</title>
+  <meta name="description" content="How to implement cloud security governance using Terraform, OPA, SCPs, and Lambda auto-remediation instead of manual reviews." />
+  <style>
+    body { max-width: 900px; margin: 80px auto; padding: 0 20px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; color: #111; line-height: 1.7; }
+    h1 { font-size: 2.1rem; line-height: 1.25; margin-bottom: 0.2em; }
+    h2 { margin-top: 2.2em; font-size: 1.35rem; }
+    p { margin: 0.9em 0; }
+    ul { margin: 0.6em 0 0.6em 1.2em; }
+    li { margin-bottom: 0.35em; }
+    code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-size: 0.92em; }
+    pre { background: #f4f4f4; padding: 16px; border-radius: 4px; overflow-x: auto; font-size: 0.9em; line-height: 1.5; }
+    .meta { color: #555; font-size: 0.95rem; margin-top: 0.2em; }
+    .home a { color: #000; text-decoration: underline; }
+    .divider { margin: 2.5em 0; border-top: 1px solid #eee; }
+  </style>
+</head>
+<body>
+
+  <p class="home"><a href="/">← Home</a></p>
+
+  <h1>Cloud Security as Code: Moving Beyond Checkbox Compliance</h1>
+  <p class="meta">December 2025 · Mert Satilmaz</p>
+
+  <div class="divider"></div>
+
+  <p>
+    Most cloud security programs are built on manual reviews. Someone checks whether S3 buckets are public. Someone verifies that security groups are not overly permissive. Someone reviews IAM policies quarterly. The reviews happen, the checkboxes get filled, and the compliance report looks clean. Then a developer creates a new resource that violates every policy the review just confirmed, and nobody notices until the next quarterly cycle.
+  </p>
+  <p>
+    This is not a people problem. It is an architecture problem. Manual review does not scale when infrastructure changes daily. The only approach that survives continuous deployment is treating security policy as code: versioned, tested, and enforced automatically.
+  </p>
+
+  <h2>The compliance illusion</h2>
+  <p>
+    Compliance frameworks give organizations a false sense of security by measuring intent rather than enforcement. Passing an audit means you have policies. It does not mean those policies are enforced continuously, or that violations are detected and remediated before they cause damage.
+  </p>
+  <p>
+    I have worked in environments where the compliance posture was excellent on paper and the actual cloud estate was full of misconfigurations: public S3 buckets, overprivileged IAM roles, unencrypted databases, security groups allowing 0.0.0.0/0 on management ports. The policies existed. The enforcement did not. The gap between "we have a policy" and "this policy is enforced at every deployment" is where cloud breaches live.
+  </p>
+
+  <h2>Four layers of enforcement</h2>
+  <p>
+    Effective cloud security as code is not a single tool. It is a layered architecture where each layer catches what the previous one missed.
+  </p>
+
+  <p>
+    <strong>Layer 1: Preventive guardrails with Service Control Policies.</strong> SCPs operate at the AWS Organizations level and define hard boundaries that no IAM policy can override. They prevent entire categories of dangerous actions before they happen. You cannot launch resources in unapproved regions. You cannot disable CloudTrail. You cannot create public S3 buckets in production accounts. SCPs are the most underused security primitive in AWS because most teams do not realize they can enforce policy at the organization level rather than relying on individual account configurations.
+  </p>
+
+  <p>
+    <strong>Layer 2: Pre-deployment validation with OPA/Conftest.</strong> Before any Terraform plan is applied, OPA policies validate the proposed infrastructure against security rules. This runs in CI/CD and blocks deployments that violate policy. An engineer cannot deploy an unencrypted RDS instance because the pipeline rejects the Terraform plan before it reaches AWS. This is the "shift left" that actually works: a hard gate in the deployment pipeline, not a suggestion in a wiki.
+  </p>
+
+  <p>
+    <strong>Layer 3: Continuous monitoring with AWS Config Conformance Packs.</strong> Even with preventive controls, drift happens. Resources get modified through the console. Legacy configurations predate the policy framework. AWS Config Conformance Packs continuously evaluate every resource against a defined rule set and flag non-compliant resources in near real time. This layer catches everything that slipped through layers 1 and 2.
+  </p>
+
+  <p>
+    <strong>Layer 4: Automated remediation with Lambda.</strong> Detection without action is just alerting. For a defined set of misconfigurations, Lambda functions automatically remediate the violation. A security group that opens SSH to the internet gets its rule revoked. An S3 bucket that loses its encryption configuration gets re-encrypted. The remediation is logged, the team is notified, and the resource is brought back into compliance without human intervention.
+  </p>
+
+  <h2>The Terraform foundation</h2>
+  <p>
+    All four layers are themselves defined and deployed as code using Terraform. The SCPs, the OPA policies, the Config Conformance Packs, and the Lambda remediation functions are versioned in Git, reviewed through pull requests, and deployed through the same CI/CD pipeline as application infrastructure.
+  </p>
+  <p>
+    This matters because it means security policy changes follow the same engineering workflow as infrastructure changes. They are reviewed, tested, versioned, and auditable. There is no "someone logged into the console and changed a setting" ambiguity. Every policy has a commit hash, a pull request, and a reviewer.
+  </p>
+
+  <h2>Where it breaks</h2>
+  <p>
+    Policy as code is not a silver bullet, and pretending otherwise is dangerous.
+  </p>
+  <p>
+    OPA policies that are too strict block legitimate deployments and erode engineering trust. If your security gate rejects valid infrastructure because the policy did not account for an edge case, engineers will find workarounds. Every false positive in a deployment pipeline costs developer time and security credibility.
+  </p>
+  <p>
+    Auto-remediation can cause outages if the remediation logic has bugs. Revoking a security group rule that a production service depends on (even if the rule is non-compliant) will take down the service. Remediation functions need testing, rollback capability, and scope limits that prevent them from touching production resources without human approval.
+  </p>
+  <p>
+    Config rules have evaluation delays. A resource can be non-compliant for minutes or hours before Config detects it. If you need sub-second enforcement, SCPs and CI/CD gates are the only reliable options.
+  </p>
+
+  <h2>The real value is in the feedback loop</h2>
+  <p>
+    The most important output of this architecture is not the enforcement itself. It is the data. Every policy violation that gets blocked, detected, or remediated is a signal about where engineering teams are making mistakes, where documentation is unclear, where policies are too restrictive, and where security training should focus.
+  </p>
+  <p>
+    When you can see that 80% of blocked deployments are caused by the same misconfiguration pattern, that is not a security problem anymore. It is an education problem with a clear, data-driven solution. Policy as code turns security from a reactive function into a feedback system that improves the entire engineering organization over time.
+  </p>
+  <p>
+    That feedback loop is worth more than any individual control.
+  </p>
+
+</body>
+</html>
